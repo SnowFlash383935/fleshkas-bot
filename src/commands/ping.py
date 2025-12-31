@@ -6,7 +6,7 @@ It also includes other timestamps to help calculate the coldstart time.
 import time
 import discohook
 
-@discohook.command.slash('ping', description = 'Ping test the bot (modified)!')
+@discohook.command.slash('ping', description = 'Ping test the bot!')
 async def ping_command(interaction):
   created_at = interaction.created_at
   now = time.time()
