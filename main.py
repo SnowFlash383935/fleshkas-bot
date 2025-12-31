@@ -1,55 +1,71 @@
 import os
+import asyncio
+import datetime
+import traceback
+import contextlib
+import aiohttp
 import discohook
+from starlette.responses import JSONResponse
+from .cogs.ping import ping_command
 
-DISCORD_TOKEN = os.environ["DISCORD_TOKEN"]
-PUBLIC_KEY = os.environ["PUBLIC_KEY"]
-APPLICATION_ID = os.environ["APPLICATION_ID"]
-APPLICATION_PASSWORD = os.environ["APPLICATION_PASSWORD"]
+def run():
 
-# Create client instance (use a different name to avoid conflict)
-client = discohook.Client(
-    application_id=APPLICATION_ID,
-    public_key=PUBLIC_KEY,
-    token=DISCORD_TOKEN,
-    password=APPLICATION_PASSWORD,
-    default_help_command=True,
-)
+  # Lifespan can also be used to async setup .session and .db attributes
+  # https://www.starlette.io/lifespan
+  @contextlib.asynccontextmanager
+  async def lifespan(app):
+    try:
+      yield
+    finally:
+      if app.http.session: # close bot session
+        await app.http.session.close() 
 
-# Error handlers (use 'client' instead of 'app')
-@client.on_interaction_error()
-async def interaction_error_handler(i: discohook.Interaction, err: Exception):
-    user_response = "Some error occurred! Please contact the developer."
-    if i.responded:
-        await i.response.followup(user_response, ephemeral=True)
+  # Define the bot
+  app = discohook.Client(
+    application_id = os.getenv('APPLICATION_ID'),
+    public_key = os.getenv('PUBLIC_KEY'),
+    token = os.getenv('DISCORD_TOKEN'),
+    password = os.getenv('APPLICATION_PASSWORD'),
+    lifespan = lifespan
+  )
+
+  # Attach error handler
+  app.errors = []
+  error_log_webhook = discohook.PartialWebhook.from_url(app, os.getenv('ERROR_LOG_WEBHOOK'))
+  @app.on_interaction_error()
+  async def on_error(interaction, error):
+    trace = tuple(traceback.TracebackException.from_exception(error).format())
+    app.errors.append(trace)
+    text = ''.join(trace)
+    print(text)
+    if interaction.responded:
+      await interaction.response.followup('Sorry, an error has occurred (after responding).')
     else:
-        await i.response.send(user_response, ephemeral=True)
-    await client.send("12345678910", f"Error: {err}")
+      await interaction.response.send('Sorry, an error has occurred.')
+    await error_log_webhook.send(text[:2000])
 
-@client.on_error()
-async def server_error_handler(_request, err: Exception):
-    await client.send("12345678910", f"Error: {err}")
+  # Set bot started at timestamp
+  app.started_at = datetime.datetime.utcnow()
 
-# Commands (use 'client.load')
-@client.load
-@discohook.command.slash()
-async def ping(i: discohook.Interaction):
-    """Ping the bot."""
-    await i.response.send("Pong!")
+  # Set if bot is test or not
+  app.test = bool(os.getenv('test'))
 
-@client.load
-@discohook.command.user()
-async def avatar(i: discohook.Interaction, user: discohook.User):
-    embed = discohook.Embed()
-    embed.set_image(img=user.avatar.url)
-    await i.response.send(embed=embed)
+  # Add commands
+  app.add_commands(
+    ping_command
+  )
 
-@client.load
-@discohook.command.message()
-async def quote(i: discohook.Interaction, message: discohook.Message):
-    embed = discohook.Embed()
-    embed.set_author(name=message.author.name, icon_url=message.author.avatar.url)
-    embed.description = message.content
-    await i.response.send(embed=embed)
+  # Attach / route for debugging
+  @app.route('/', methods = ['GET'])
+  async def root(request):
+    return JSONResponse({
+      'Started' : str(app.started_at),
+      'Now' : str(datetime.datetime.utcnow()),
+      'Test' : app.test,
+      'Errors' : app.errors
+    })
 
-# Export the ASGI app for Vercel
-app = client.app  # or try client.asgi_app if .app doesn't work
+  # Return app object
+  return app
+
+app = run()
