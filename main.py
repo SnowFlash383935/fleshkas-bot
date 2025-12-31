@@ -1,3 +1,3 @@
-from src.bot inport run
+from src.bot import run
 
 app = run()
