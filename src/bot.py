@@ -22,10 +22,10 @@ def run():
 
   # Define the bot
   app = discohook.Client(
-    application_id = os.getenv('DISCORD_APPLICATION_ID'),
-    public_key = os.getenv('DISCORD_PUBLIC_KEY'),
-    token = os.getenv('DISCORD_BOT_TOKEN'),
-    password = os.getenv('SYNC_PASSWORD'),
+    application_id = os.getenv('APPLICATION_ID'),
+    public_key = os.getenv('PUBLIC_KEY'),
+    token = os.getenv('DISCORD_TOKEN'),
+    password = os.getenv('APPLICATION_PASSWORD'),
     lifespan = lifespan
   )
 
