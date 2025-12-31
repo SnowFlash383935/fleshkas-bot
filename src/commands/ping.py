@@ -6,18 +6,18 @@ It also includes other timestamps to help calculate the coldstart time.
 import time
 import discohook
 
-@discohook.command.slash('ping', description = 'Ping test the bot!')
+@discohook.command.slash('ping', description = 'Пинг бота!')
 async def ping_command(interaction):
   created_at = interaction.created_at
   now = time.time()
   since = now - created_at
 
   text = '\n'.join([
-    'Pong! Latency: `{:.2f}ms`'.format(since * 1000),
+    'Понг! Задержка: `{:.2f}ms`'.format(since * 1000),
     '',
-    'Bot started at: {}'.format(interaction.client.started_at.timestamp()),
-    'Interaction created at: {}'.format(created_at),
-    'Time right now: {}'.format(now)
+    'Бот запущен в: {}'.format(interaction.client.started_at.timestamp()),
+    'Interaction создана в: {}'.format(created_at),
+    'Текущее время: {}'.format(now)
   ])
 
   await interaction.response.send(text)
