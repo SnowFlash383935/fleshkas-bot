@@ -17,7 +17,7 @@ async def ping_command(interaction):
     'Понг! Задержка: `{:.2f}ms`'.format(since * 1000),
     '',
     'Бот запущен в: {}'.format(str(interaction.client.started_at)),
-    'Interaction создана в: {}'.format(str(datetime.fromtimestamp(created_at).isoformat(sep='T'))),
+    'Interaction создана в: {}'.format(str(datetime.datetime.fromtimestamp(created_at).isoformat(sep='T'))),
     'Текущее время: {}'.format(str(datetime.datetime.utcnow()))
   ])
 
